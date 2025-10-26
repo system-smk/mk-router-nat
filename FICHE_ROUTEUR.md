@@ -97,5 +97,3 @@ sudo apt install iptables-persistent isc-dhcp-server
 
 ---
 
-Souhaites-tu que je t’aide à créer une version simplifiée pour les jeunes, ou à structurer une fiche “désactivation propre du routeur” en miroir de ce README ?  
-On peut aussi ajouter un changelog ou une section “philosophie du projet” pour transmettre ton approche artisanale.
