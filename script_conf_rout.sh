@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script de configuration du routeur NAT Debian (Version optimisée v2)
-# Auteur : Mathieu-Karim & Copilot & Gemini & Claude
+# Auteur : SMK & Copilot & Gemini & Claude
 # Date : 2025-10-26
 # Licence : MIT
 
