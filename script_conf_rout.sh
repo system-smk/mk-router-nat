@@ -1,10 +1,8 @@
 #!/bin/bash
 # Script : routeur_usb_ethernet.sh
-# Auteur : SMK & Copilot & Gemini
+# Auteur : SMK & Copilot & Gemini & Claude
 # Description : Transforme un PC Debian en routeur NAT via USB tethering
 
-#!/bin/bash
-# Script pour configurer Debian en routeur NAT avec DHCP
 
 # S'arrêter immédiatement si une commande échoue (bonne pratique)
 set -e
