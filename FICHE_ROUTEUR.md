@@ -33,8 +33,8 @@ Il est conçu pour être **modulaire, pédagogique et portable**, avec configura
 
 ### Lancer le script :
 ```bash
-chmod +x routeur_usb_ethernet.sh
-sudo ./routeur_usb_ethernet.sh
+chmod +x script_conf_rout.sh
+sudo ./script_conf_rout.sh
 ```
 
 ---
