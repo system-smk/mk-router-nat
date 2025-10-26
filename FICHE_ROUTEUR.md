@@ -1,6 +1,6 @@
 # `README.md` – Routeur Debian via USB Tethering
 
-## 🧭 Objectif
+##  Objectif
 
 Ce projet transforme un PC Debian en **routeur NAT** pour partager une connexion Internet reçue via **USB tethering (smartphone)** avec un second PC connecté en **Ethernet**.
 
@@ -8,10 +8,10 @@ Il est conçu pour être **modulaire, pédagogique et portable**, avec configura
 
 ---
 
-## 🧱 Architecture réseau
+##  Architecture réseau
 
 ```
-[Internet via USB tethering] ←→ [PC Debian KDE] ←→ [PC secondaire via Ethernet]
+[Internet via partage de connexion USB] ←→ [PC Debian KDE] ←→ [PC secondaire via Ethernet]
 ```
 
 - Interface Internet : USB (ex. `enx0ef9723bac04`)
@@ -21,7 +21,7 @@ Il est conçu pour être **modulaire, pédagogique et portable**, avec configura
 
 ---
 
-## 📜 Script principal : `routeur_usb_ethernet.sh`
+##  Script principal : `routeur_usb_ethernet.sh`
 
 ### Fonctionnalités :
 - Configuration interactive (`read`) des interfaces et IP
@@ -39,7 +39,7 @@ sudo ./routeur_usb_ethernet.sh
 
 ---
 
-## 📁 Fichiers générés/modifiés
+## Fichiers générés/modifiés
 
 | Fichier                            | Rôle                                      |
 |-----------------------------------|-------------------------------------------|
@@ -50,7 +50,7 @@ sudo ./routeur_usb_ethernet.sh
 
 ---
 
-## 🧪 Vérifications recommandées
+## Vérifications recommandées
 
 - Interface LAN active avec IP statique :
   ```bash
@@ -65,7 +65,7 @@ sudo ./routeur_usb_ethernet.sh
 
 ---
 
-## 🧰 Dépendances
+## Dépendances
 
 - `iptables`
 - `iptables-persistent`
