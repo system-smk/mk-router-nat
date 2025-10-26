@@ -1,188 +1,122 @@
-# 🌐 Routeur NAT Debian - Scripts de gestion
+# `README.md` – Script de désactivation du routeur NAT Debian
 
-Scripts Bash professionnels pour configurer et désactiver un routeur NAT sur Debian/Ubuntu.
+## 🧭 Objectif
 
-## 📋 Description
+Ce script permet de **désactiver proprement** un routeur NAT configuré sur Debian, en annulant les modifications effectuées par le script de configuration (`config_routeur.sh`).  
+Il propose un **menu interactif**, une **gestion fine des erreurs**, des **affichages colorés**, et une **sécurité renforcée**.
 
-Ce projet contient des scripts pour transformer une machine Debian en routeur NAT avec serveur DHCP, permettant de partager une connexion Internet entre plusieurs machines. Le script de désactivation permet d'annuler proprement toutes les modifications.
+---
 
-### Fonctionnalités
+## 🧱 Structure du script
 
-- ✅ Configuration complète du routage NAT (iptables)
-- ✅ Serveur DHCP intégré
-- ✅ Configuration d'IP statique sur interface LAN
-- ✅ Activation/désactivation du forwarding IP
-- ✅ Désinstallation propre des paquets
-- ✅ Sauvegardes automatiques
-- ✅ Validation des entrées utilisateur
-- ✅ Gestion robuste des erreurs
-- ✅ Interface colorée et intuitive
-
-## 🔧 Prérequis
-
-- **Système d'exploitation** : Debian 10+, Ubuntu 18.04+ ou dérivés
-- **Privilèges** : Accès root (via `sudo`)
-- **Interfaces réseau** : Au moins 2 interfaces (WAN et LAN)
-
-### Paquets nécessaires (installés automatiquement)
-
-- `iptables-persistent`
-- `netfilter-persistent`
-- `isc-dhcp-server`
-
-## 📥 Installation
-
-### 1. Cloner ou télécharger les scripts
+### 1. **En-tête et sécurité**
 
 ```bash
-# Télécharger le script de désactivation
-wget https://example.com/disable_nat.sh
-
-# Rendre le script exécutable
-chmod +x disable_nat.sh
+set -euo pipefail
 ```
 
-### 2. Vérifier les interfaces réseau
+- `-e` : stoppe le script si une commande échoue
+- `-u` : stoppe si une variable non définie est utilisée
+- `-o pipefail` : stoppe si une commande dans un pipe échoue
 
-Identifiez vos interfaces réseau avant utilisation :
+> 🔐 Cela garantit que le script ne continue pas en cas d’erreur silencieuse.
+
+---
+
+### 2. **Affichage coloré et fonctions utilitaires**
 
 ```bash
-ip -br link show
+print_success "..."   # ✅ Affiche un message en vert
+print_error "..."     # ❌ Affiche un message en rouge
+print_warning "..."   # ⚠️ Affiche un message en jaune
+print_info "..."      # ℹ️ Affiche un message d'information
 ```
 
-Exemple de sortie :
-```
-lo               UNKNOWN        00:00:00:00:00:00
-enp0s3           UP             08:00:27:xx:xx:xx  # Interface WAN (Internet)
-enp0s8           UP             08:00:27:yy:yy:yy  # Interface LAN (réseau local)
-```
+> 🎨 Ces fonctions rendent le script plus lisible et agréable à utiliser, surtout pour les débutants.
 
-## 🚀 Utilisation
+---
 
-### Script de désactivation
+### 3. **Vérification des droits root**
 
 ```bash
-sudo ./disable_nat.sh
+if [[ $EUID -ne 0 ]]; then
+   print_error "Ce script doit être exécuté en root"
+   exit 1
+fi
 ```
 
-#### Menu interactif
+> ✅ Évite les erreurs dues à un manque de privilèges.
 
-Le script propose 6 options :
+---
 
-1. **Supprimer les règles NAT** - Nettoie uniquement iptables
-2. **Arrêter le serveur DHCP** - Stoppe et désactive isc-dhcp-server
-3. **Désactiver l'IP statique** - Supprime l'IP configurée sur l'interface LAN
-4. **Désactiver le routage IP** - Désactive le forwarding IPv4
-5. **TOUT DÉSACTIVER** - Exécute les options 1 à 4
-6. **TOUT NETTOYER** - Désactive tout + désinstalle les paquets
+### 4. **Fonctions de sécurité**
 
-### Exemples d'utilisation
+#### 🔒 `backup_file /etc/sysctl.conf`
 
-#### Désactiver temporairement le NAT (garder les paquets)
+Crée une sauvegarde horodatée du fichier avant modification.
 
-```bash
-sudo ./disable_nat.sh
-# Choisir l'option 5
-```
+#### 🔎 `validate_interface enp1s0`
 
-#### Désinstallation complète
+Vérifie que l’interface réseau existe, sinon affiche les interfaces disponibles.
 
-```bash
-sudo ./disable_nat.sh
-# Choisir l'option 6
-# Confirmer avec 'o'
-```
+---
 
-#### Désactiver uniquement le DHCP
+## 📋 Menu interactif
 
-```bash
-sudo ./disable_nat.sh
-# Choisir l'option 2
-```
+L’utilisateur choisit une action parmi :
 
-## 📁 Structure du projet
+| Option | Action |
+|--------|--------|
+| 1 | Supprimer les règles NAT (`iptables`) |
+| 2 | Arrêter le serveur DHCP |
+| 3 | Supprimer l’IP statique de l’interface LAN |
+| 4 | Désactiver le routage IP |
+| 5 | Tout désactiver (1 à 4) |
+| 6 | Tout désactiver + désinstaller les paquets |
 
-```
-.
-├── disable_nat.sh          # Script de désactivation (ce fichier)
-├── setup_nat.sh            # Script de configuration (à créer)
-├── README.md               # Documentation
-└── backups/                # Sauvegardes automatiques (créé par le script)
-    └── sysctl.conf.bak-*
-```
+> 🛑 L’option 6 demande une **confirmation explicite** avant exécution.
 
-## 🔐 Sécurité
+---
 
-### Vérifications intégrées
+## 🔧 Détail des actions
 
-- ✅ Validation des privilèges root
-- ✅ Validation de l'existence des interfaces réseau
-- ✅ Confirmation pour les actions destructives
-- ✅ Sauvegardes automatiques des fichiers système
-- ✅ Gestion des erreurs avec arrêt sécurisé
+### ✅ Action 1 : Suppression des règles NAT
 
-### Sauvegardes
+- Vide les règles `iptables` (NAT et FORWARD)
+- Sauvegarde l’état vide si `netfilter-persistent` est installé
 
-Le script crée automatiquement des sauvegardes horodatées :
+### ✅ Action 2 : Arrêt du serveur DHCP
 
-```
-/etc/sysctl.conf.bak-20251026-143052
-```
+- Stoppe et désactive `isc-dhcp-server` si actif
 
-Pour restaurer une sauvegarde :
+### ✅ Action 3 : Désactivation de l’IP statique
 
-```bash
-sudo cp /etc/sysctl.conf.bak-YYYYMMDD-HHMMSS /etc/sysctl.conf
-```
+- Supprime toutes les IP de l’interface LAN
 
-## 🐛 Dépannage
+### ✅ Action 4 : Désactivation du routage IP
 
-### Erreur : "L'interface n'existe pas"
+- Désactive immédiatement (`sysctl`)
+- Modifie `/etc/sysctl.conf` pour rendre le changement persistant
 
-**Cause** : Interface réseau mal nommée ou inexistante
+### ✅ Action 6 : Nettoyage complet
 
-**Solution** :
-```bash
-# Lister les interfaces disponibles
-ip -br link show
+- Supprime les paquets : `isc-dhcp-server`, `iptables-persistent`, `netfilter-persistent`
+- Utilise `apt purge` et `autoremove` pour un nettoyage propre
 
-# Utiliser le nom exact affiché
-```
+---
 
-### Erreur : "netfilter-persistent: command not found"
+## 🧪 Conseils après exécution
 
-**Cause** : Paquet non installé (normal si désinstallé)
+- Pour redémarrer les interfaces réseau :
+  ```bash
+  sudo systemctl restart networking
+  ```
+- Pour redémarrer complètement :
+  ```bash
+  sudo reboot
+  ```
 
-**Solution** : Le script gère ce cas automatiquement, aucune action nécessaire
-
-### Le routage ne se désactive pas
-
-**Solution** :
-```bash
-# Vérifier l'état du forwarding
-sysctl net.ipv4.ip_forward
-
-# Forcer la désactivation
-sudo sysctl -w net.ipv4.ip_forward=0
-
-# Redémarrer le système
-sudo reboot
-```
-
-## 📝 Logs et vérification
-
-### Vérifier l'état après désactivation
-
-```bash
-# Vérifier le forwarding IP
-sysctl net.ipv4.ip_forward  # Doit afficher : 0
-
-# Vérifier les règles iptables
-sudo iptables -t nat -L -n -v
-
-# Vérifier le statut DHCP
-sudo systemctl status isc-dhcp-server
-```
+---
 
 ## 🤝 Contribution
 
