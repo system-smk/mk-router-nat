@@ -227,6 +227,16 @@ iptables -X || true
 # Configuration NAT
 iptables -t nat -A POSTROUTING -o "$IFACE_INTERNET" -j MASQUERADE
 
+# Détection de l'IP source réelle sur l'interface Internet
+IP_SOURCE=$(ip -4 addr show dev "$IFACE_INTERNET" | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
+
+if [[ -n "$IP_SOURCE" ]]; then
+    iptables -t nat -A POSTROUTING -s "${NETWORK_BASE}.0/24" -o "$IFACE_INTERNET" -j SNAT --to-source "$IP_SOURCE"
+    print_success "Règle SNAT ajoutée avec IP source : $IP_SOURCE"
+else
+    print_warning "Impossible de détecter l'IP source sur $IFACE_INTERNET. SNAT non appliqué."
+fi
+
 # Règles de FORWARD
 iptables -A FORWARD -i "$IFACE_LAN" -o "$IFACE_INTERNET" -j ACCEPT
 iptables -A FORWARD -i "$IFACE_INTERNET" -o "$IFACE_LAN" -m state --state RELATED,ESTABLISHED -j ACCEPT
