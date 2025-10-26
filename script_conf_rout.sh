@@ -1,6 +1,6 @@
 #!/bin/bash
-# Script de configuration du routeur NAT Debian (Version optimisée)
-# Auteur : SMK & Copilot & Gemini & Claude
+# Script de configuration du routeur NAT Debian (Version optimisée v2)
+# Auteur : Mathieu-Karim & Copilot & Gemini & Claude
 # Date : 2025-10-26
 # Licence : MIT
 
@@ -95,7 +95,17 @@ echo ""
 while true; do
     read -p "Interface connectée à Internet (ex: enx0ef9723bac04) : " IFACE_INTERNET
     if validate_interface "$IFACE_INTERNET"; then
-        break
+        # Vérifier que l'interface a une adresse IP
+        if ! ip -4 addr show dev "$IFACE_INTERNET" | grep -q "inet "; then
+            print_warning "L'interface $IFACE_INTERNET n'a pas d'adresse IP !"
+            print_info "Assurez-vous que votre connexion (USB tethering, etc.) est active"
+            read -p "Continuer quand même ? (o/N) : " CONTINUE
+            if [[ "$CONTINUE" == "o" || "$CONTINUE" == "O" ]]; then
+                break
+            fi
+        else
+            break
+        fi
     fi
 done
 
@@ -164,6 +174,15 @@ while true; do
     fi
 done
 
+# Choix du type de NAT (nouveau)
+echo ""
+print_info "=== Choix du type de NAT ==="
+echo "1) SNAT (recommandé pour USB tethering et réseaux mobiles)"
+echo "2) MASQUERADE (plus flexible, détecte automatiquement l'IP)"
+echo ""
+read -p "Votre choix (1 ou 2, défaut: 1) : " NAT_CHOICE
+NAT_CHOICE=${NAT_CHOICE:-1}
+
 # Résumé de la configuration
 echo ""
 print_info "=== Résumé de la configuration ==="
@@ -172,6 +191,11 @@ echo "  Interface LAN      : $IFACE_LAN"
 echo "  IP du routeur      : $IP_LAN/$NETMASK"
 echo "  Plage DHCP         : $DHCP_START - $DHCP_END"
 echo "  Serveur DNS        : $DNS_IP"
+if [[ "$NAT_CHOICE" == "1" ]]; then
+    echo "  Type de NAT        : SNAT (IP fixe)"
+else
+    echo "  Type de NAT        : MASQUERADE (IP dynamique)"
+fi
 echo ""
 
 read -p "Confirmer et continuer ? (o/N) : " CONFIRM
@@ -214,7 +238,7 @@ fi
 print_success "Routage IP activé (immédiat et persistant)"
 
 # ------------------------------------------------------------------
-# Bloc 4 : Configuration et Nettoyage du NAT avec iptables
+# Bloc 4 : Configuration du NAT avec iptables (CORRIGÉ)
 # ------------------------------------------------------------------
 
 print_step "4/9 : Configuration du NAT (iptables)"
@@ -224,24 +248,33 @@ iptables -t nat -F || true
 iptables -F || true
 iptables -X || true
 
-# Configuration NAT
-iptables -t nat -A POSTROUTING -o "$IFACE_INTERNET" -j MASQUERADE
-
-# Détection de l'IP source réelle sur l'interface Internet
+# Détection de l'IP source sur l'interface Internet
 IP_SOURCE=$(ip -4 addr show dev "$IFACE_INTERNET" | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
 
-if [[ -n "$IP_SOURCE" ]]; then
-    iptables -t nat -A POSTROUTING -s "${NETWORK_BASE}.0/24" -o "$IFACE_INTERNET" -j SNAT --to-source "$IP_SOURCE"
-    print_success "Règle SNAT ajoutée avec IP source : $IP_SOURCE"
+if [[ "$NAT_CHOICE" == "1" ]]; then
+    # Mode SNAT (recommandé pour tethering)
+    if [[ -n "$IP_SOURCE" ]]; then
+        print_info "Configuration NAT en mode SNAT avec IP source : $IP_SOURCE"
+        iptables -t nat -A POSTROUTING -s "${NETWORK_BASE}.0/24" -o "$IFACE_INTERNET" -j SNAT --to-source "$IP_SOURCE"
+        print_success "Règle SNAT configurée (IP fixe: $IP_SOURCE)"
+    else
+        print_warning "Impossible de détecter l'IP sur $IFACE_INTERNET"
+        print_info "Basculement automatique en mode MASQUERADE"
+        iptables -t nat -A POSTROUTING -o "$IFACE_INTERNET" -j MASQUERADE
+        print_success "Règle MASQUERADE configurée (fallback)"
+    fi
 else
-    print_warning "Impossible de détecter l'IP source sur $IFACE_INTERNET. SNAT non appliqué."
+    # Mode MASQUERADE (dynamique)
+    print_info "Configuration NAT en mode MASQUERADE (IP dynamique)"
+    iptables -t nat -A POSTROUTING -o "$IFACE_INTERNET" -j MASQUERADE
+    print_success "Règle MASQUERADE configurée"
 fi
 
-# Règles de FORWARD
+# Règles de FORWARD (communes aux deux modes)
 iptables -A FORWARD -i "$IFACE_LAN" -o "$IFACE_INTERNET" -j ACCEPT
 iptables -A FORWARD -i "$IFACE_INTERNET" -o "$IFACE_LAN" -m state --state RELATED,ESTABLISHED -j ACCEPT
 
-print_success "Règles NAT configurées"
+print_success "Règles de routage (FORWARD) configurées"
 
 # ------------------------------------------------------------------
 # Bloc 5 : Sauvegarde des règles iptables
@@ -367,9 +400,17 @@ echo ""
 echo "📋 Informations importantes :"
 echo "  • Adresse du routeur : $IP_LAN"
 echo "  • Interface Internet : $IFACE_INTERNET"
+if [[ -n "$IP_SOURCE" ]]; then
+    echo "  • IP source (WAN)    : $IP_SOURCE"
+fi
 echo "  • Interface LAN      : $IFACE_LAN"
 echo "  • Plage DHCP         : $DHCP_START - $DHCP_END"
 echo "  • DNS                : $DNS_IP"
+if [[ "$NAT_CHOICE" == "1" ]]; then
+    echo "  • Type de NAT        : SNAT (IP fixe)"
+else
+    echo "  • Type de NAT        : MASQUERADE (dynamique)"
+fi
 echo ""
 echo "🔧 Prochaines étapes :"
 echo "  1. Connectez votre second PC à l'interface $IFACE_LAN"
